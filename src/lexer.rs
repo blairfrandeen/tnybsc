@@ -1,3 +1,6 @@
+use std::iter::Peekable;
+use std::str::Chars;
+
 #[derive(Debug, PartialEq)]
 pub enum Token {
     Add,
@@ -7,16 +10,13 @@ pub enum Token {
     Assign,
     Equals,
     Ident(String),
+    If,
+    EndIf,
+    While,
+    EndWhile,
 }
 
-fn match_literal(expected: &'static str) -> impl Fn(&str) -> Result<(&str, ()), &str> {
-    move |input| match input.get(0..expected.len()) {
-        Some(next) if next == expected => Ok((&input[expected.len()..], ())),
-        _ => Err(input),
-    }
-}
-
-fn parse_ident(first: char, input: &mut std::iter::Peekable<std::str::Chars<'_>>) -> Option<Token> {
+fn parse_ident(first: char, input: &mut Peekable<Chars>) -> Option<Token> {
     let mut matched = String::new();
 
     if first.is_alphabetic() {
@@ -30,6 +30,38 @@ fn parse_ident(first: char, input: &mut std::iter::Peekable<std::str::Chars<'_>>
     } else {
         return None;
     }
+}
+
+fn parse_keyword(first: char, input: &mut Peekable<Chars>) -> Option<Token> {
+    // All keywords are in ALL_CAPS
+    if !first.is_uppercase() {
+        return None;
+    }
+    let mut keyword = String::with_capacity(16);
+    keyword.push(first);
+    while let Some(next) = input.next_if(|chr| chr.is_uppercase()) {
+        keyword.push(next)
+    }
+
+    match keyword.as_str() {
+        "IF" => Some(Token::If),
+        "ENDIF" => Some(Token::EndIf),
+        "WHILE" => Some(Token::While),
+        "ENDWHILE" => Some(Token::EndWhile),
+        // Default case is we don't match a keyword. In that case we must have an identifier
+        // that happens to be all caps
+        _ => Some(Token::Ident(keyword)),
+    }
+}
+
+#[test]
+fn test_parse_keyword() {
+    let input = "IF something == 0 ENDIF";
+    let mut chars = input.chars().peekable();
+    assert_eq!(
+        parse_keyword(chars.next().unwrap(), &mut chars),
+        Some(Token::If)
+    );
 }
 
 pub fn parse_tokens(input: &str) -> Result<Vec<Token>, &str> {
@@ -49,10 +81,15 @@ pub fn parse_tokens(input: &str) -> Result<Vec<Token>, &str> {
                 }
                 _ => tokens.push(Token::Assign),
             },
-            _ => match parse_ident(next, &mut chars) {
-                Some(token) => tokens.push(token),
-                _ => continue,
-            },
+            _ => {
+                if let Some(token) = parse_keyword(next, &mut chars) {
+                    tokens.push(token);
+                } else if let Some(token) = parse_ident(next, &mut chars) {
+                    tokens.push(token);
+                } else {
+                    continue;
+                }
+            }
         }
     }
 
@@ -61,9 +98,8 @@ pub fn parse_tokens(input: &str) -> Result<Vec<Token>, &str> {
 
 #[test]
 fn test_parse_tokens() {
-    let res = parse_tokens("+-=+==");
     assert_eq!(
-        res,
+        parse_tokens("+-=+=="),
         Ok(vec![
             Token::Add,
             Token::Sub,
@@ -73,13 +109,21 @@ fn test_parse_tokens() {
         ])
     );
 }
+
 #[test]
-fn test_match_literal() {
-    let parse_joe = match_literal("Hello Joe!");
-    assert_eq!(Ok(("", ())), parse_joe("Hello Joe!"));
+fn test_parse_ident() {
+    let input = "key = valu3";
+    let mut chars = input.chars().peekable();
+    let first = chars.next().unwrap();
     assert_eq!(
-        Ok((" Hello Robert!", ())),
-        parse_joe("Hello Joe! Hello Robert!")
+        parse_ident(first, &mut chars),
+        Some(Token::Ident("key".to_string()))
     );
-    assert_eq!(Err("Sup boss?"), parse_joe("Sup boss?"));
+    assert_eq!(chars.next(), Some(' '));
+    assert_eq!(chars.next(), Some('='));
+    assert_eq!(chars.next(), Some(' '));
+    assert_eq!(
+        parse_ident(chars.next().unwrap(), &mut chars),
+        Some(Token::Ident("valu3".to_string()))
+    );
 }
