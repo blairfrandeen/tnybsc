@@ -1,3 +1,4 @@
+#![feature(iter_advance_by)]
 use std::env;
 pub mod lexer;
 

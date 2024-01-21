@@ -6,6 +6,7 @@ pub enum Token {
     Mul,
     Assign,
     Equals,
+    Ident(String),
 }
 
 fn match_literal(expected: &'static str) -> impl Fn(&str) -> Result<(&str, ()), &str> {
@@ -15,25 +16,23 @@ fn match_literal(expected: &'static str) -> impl Fn(&str) -> Result<(&str, ()), 
     }
 }
 
-fn identifier(input: &str) -> Result<(&str, String), &str> {
+fn parse_ident(first: char, input: &mut impl Iterator<Item = char>) -> Option<Token> {
     let mut matched = String::new();
-    let mut chars = input.chars();
 
-    match chars.next() {
-        Some(next) if next.is_alphabetic() => matched.push(next),
-        _ => return Err(input),
-    }
-
-    while let Some(next) = chars.next() {
-        if next.is_alphanumeric() || next == '_' {
+    if first.is_alphabetic() {
+        matched.push(first);
+        let mut chars = input.peekable();
+        while let Some(next) = chars.next_if(|chr| chr.is_alphanumeric() || *chr == '_') {
+            // dbg!(next);
             matched.push(next);
-        } else {
-            break;
         }
-    }
+        dbg!(&matched);
 
-    let next_index = matched.len();
-    Ok((&input[next_index..], matched))
+        return Some(Token::Ident(matched));
+    } else {
+        dbg!(first);
+        return None;
+    }
 }
 
 pub fn parse_tokens(input: &str) -> Result<Vec<Token>, &str> {
@@ -41,6 +40,7 @@ pub fn parse_tokens(input: &str) -> Result<Vec<Token>, &str> {
     let mut chars = input.chars().peekable();
 
     while let Some(next) = chars.next() {
+        // dbg!(next);
         match next {
             '+' => tokens.push(Token::Add),
             '-' => tokens.push(Token::Sub),
@@ -53,13 +53,12 @@ pub fn parse_tokens(input: &str) -> Result<Vec<Token>, &str> {
                 }
                 _ => tokens.push(Token::Assign),
             },
-            _ => continue,
+            _ => match parse_ident(next, &mut chars) {
+                Some(token) => tokens.push(token),
+                _ => continue,
+            },
         }
     }
-
-    let add_tok = match_literal("+");
-
-    dbg!(&tokens);
 
     Ok(tokens)
 }
