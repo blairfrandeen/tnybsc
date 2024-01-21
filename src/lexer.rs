@@ -16,21 +16,18 @@ fn match_literal(expected: &'static str) -> impl Fn(&str) -> Result<(&str, ()), 
     }
 }
 
-fn parse_ident(first: char, input: &mut impl Iterator<Item = char>) -> Option<Token> {
+fn parse_ident(first: char, input: &mut std::iter::Peekable<std::str::Chars<'_>>) -> Option<Token> {
     let mut matched = String::new();
 
     if first.is_alphabetic() {
         matched.push(first);
-        let mut chars = input.peekable();
-        while let Some(next) = chars.next_if(|chr| chr.is_alphanumeric() || *chr == '_') {
+        while let Some(next) = input.next_if(|chr| chr.is_alphanumeric() || *chr == '_') {
             // dbg!(next);
             matched.push(next);
         }
-        dbg!(&matched);
 
         return Some(Token::Ident(matched));
     } else {
-        dbg!(first);
         return None;
     }
 }
@@ -40,7 +37,6 @@ pub fn parse_tokens(input: &str) -> Result<Vec<Token>, &str> {
     let mut chars = input.chars().peekable();
 
     while let Some(next) = chars.next() {
-        // dbg!(next);
         match next {
             '+' => tokens.push(Token::Add),
             '-' => tokens.push(Token::Sub),
@@ -86,22 +82,4 @@ fn test_match_literal() {
         parse_joe("Hello Joe! Hello Robert!")
     );
     assert_eq!(Err("Sup boss?"), parse_joe("Sup boss?"));
-}
-
-#[test]
-fn test_ident() {
-    assert_eq!(identifier("apple"), Ok(("", "apple".to_string())));
-    assert_eq!(
-        identifier("apple sauce"),
-        Ok((" sauce", "apple".to_string()))
-    );
-    assert_eq!(
-        identifier("apple_sauce"),
-        Ok(("", "apple_sauce".to_string()))
-    );
-    assert_eq!(
-        identifier("apple2sauce"),
-        Ok(("", "apple2sauce".to_string()))
-    );
-    assert_eq!(identifier("1apple sauce"), Err("1apple sauce"));
 }
