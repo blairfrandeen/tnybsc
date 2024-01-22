@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use clap::Parser;
 pub mod lexer;
+pub mod parser;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
