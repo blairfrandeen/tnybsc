@@ -17,6 +17,10 @@ impl Program {
                     let let_stmt = LetStatement::build(&mut tokens)?;
                     statements.push(Statement::Let(let_stmt));
                 }
+                Token::Print => {
+                    let print_stmt = PrintStatement::build(&mut tokens)?;
+                    statements.push(Statement::Print(print_stmt));
+                }
                 _ => todo!("not implemented"),
             }
         }
@@ -31,8 +35,8 @@ fn test_prgm() {
 
 #[derive(Debug)]
 enum Statement {
-    // Print(PrintStatement),
     Let(LetStatement),
+    Print(PrintStatement),
     // TODO
 }
 
@@ -40,6 +44,29 @@ enum Statement {
 struct LetStatement {
     ident: Token,
     expression: Expression,
+}
+
+#[derive(Debug)]
+enum PrintMessage {
+    Expression(Expression),
+    StrLit(String),
+}
+
+#[derive(Debug)]
+struct PrintStatement {
+    message: PrintMessage,
+}
+
+impl Build for PrintStatement {
+    fn build<'a>(
+        tokens: &mut Peekable<impl Iterator<Item = &'a Token>>,
+    ) -> Result<PrintStatement, &'static str> {
+        let message = match tokens.peek().ok_or("Expected string literal or expression") {
+            Ok(Token::StrLit(msg)) => PrintMessage::StrLit(msg.clone()),
+            _ => PrintMessage::Expression(Expression::build(tokens)?),
+        };
+        Ok(PrintStatement { message })
+    }
 }
 
 trait Build {
@@ -64,10 +91,6 @@ impl Build for LetStatement {
             _ => return Err("Expected '='"),
         }
 
-        // let expression = match tokens.next().ok_or("Expected expression, got EOF") {
-        //     Ok(Token::Int(val)) => Token::Int(*val),
-        //     _ => return Err("Expected Number"),
-        // };
         let expression = Expression::build(tokens)?;
 
         Ok(LetStatement { ident, expression })
