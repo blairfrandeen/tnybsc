@@ -14,12 +14,10 @@ impl Program {
         while let Some(token) = tokens.next() {
             match token {
                 Token::Let => {
-                    let let_stmt = LetStatement::build(&mut tokens)?;
-                    statements.push(Statement::Let(let_stmt));
+                    statements.push(Statement::let_statement(&mut tokens)?);
                 }
                 Token::Print => {
-                    let print_stmt = PrintStatement::build(&mut tokens)?;
-                    statements.push(Statement::Print(print_stmt));
+                    statements.push(Statement::print_statement(&mut tokens)?);
                 }
                 _ => todo!("not implemented"),
             }
@@ -35,38 +33,18 @@ fn test_prgm() {
 
 #[derive(Debug)]
 enum Statement {
-    Let(LetStatement),
-    Print(PrintStatement),
+    Let {
+        ident: Token,
+        expression: Expression,
+    },
+    Print(PrintMessage),
     // TODO
-}
-
-#[derive(Debug)]
-struct LetStatement {
-    ident: Token,
-    expression: Expression,
 }
 
 #[derive(Debug)]
 enum PrintMessage {
     Expression(Expression),
     StrLit(String),
-}
-
-#[derive(Debug)]
-struct PrintStatement {
-    message: PrintMessage,
-}
-
-impl Build for PrintStatement {
-    fn build<'a>(
-        tokens: &mut Peekable<impl Iterator<Item = &'a Token>>,
-    ) -> Result<PrintStatement, &'static str> {
-        let message = match tokens.peek().ok_or("Expected string literal or expression") {
-            Ok(Token::StrLit(msg)) => PrintMessage::StrLit(msg.clone()),
-            _ => PrintMessage::Expression(Expression::build(tokens)?),
-        };
-        Ok(PrintStatement { message })
-    }
 }
 
 trait Build {
@@ -77,10 +55,10 @@ trait Build {
         Self: Sized;
 }
 
-impl Build for LetStatement {
-    fn build<'a>(
+impl Statement {
+    fn let_statement<'a>(
         tokens: &mut Peekable<impl Iterator<Item = &'a Token>>,
-    ) -> Result<LetStatement, &'static str> {
+    ) -> Result<Statement, &'static str> {
         let ident = match tokens.next().ok_or("Expected identifier, got EOF") {
             Ok(Token::Ident(name)) => Token::Ident(name.clone()),
             _ => return Err("Expected identifier"),
@@ -93,7 +71,18 @@ impl Build for LetStatement {
 
         let expression = Expression::build(tokens)?;
 
-        Ok(LetStatement { ident, expression })
+        Ok(Statement::Let { ident, expression })
+    }
+
+    fn print_statement<'a>(
+        tokens: &mut Peekable<impl Iterator<Item = &'a Token>>,
+    ) -> Result<Statement, &'static str> {
+        let message = match tokens.peek().ok_or("Expected string literal or expression") {
+            Ok(Token::StrLit(msg)) => PrintMessage::StrLit(msg.clone()),
+            _ => PrintMessage::Expression(Expression::build(tokens)?),
+        };
+        tokens.next();
+        Ok(Statement::Print(message))
     }
 }
 
