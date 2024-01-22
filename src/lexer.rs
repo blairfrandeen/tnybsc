@@ -158,7 +158,7 @@ fn test_parse_keyword() {
 pub fn lex_source(input: &str) -> Result<Vec<Token>, &str> {
     let mut tokens: Vec<Token> = vec![];
     let mut chars = input.chars().peekable();
-    let mut line_num: u32 = 1;
+    let mut _line_num: u32 = 1; // eventually useful for error handling
 
     while let Some(next) = chars.next() {
         match next {
@@ -168,7 +168,7 @@ pub fn lex_source(input: &str) -> Result<Vec<Token>, &str> {
             '/' => tokens.push(Token::Div),
             '\n' => {
                 tokens.push(Token::NewLine);
-                line_num += 1;
+                _line_num += 1;
             }
             ' ' => continue,
             '=' => match chars.peek() {
