@@ -11,6 +11,8 @@ pub enum Token {
     Assign,
     Equals,
     NewLine,
+    Gt,
+    // TODO: Remaining Comparison operators
     // Identifiers
     Ident(String),
     // Data Types
@@ -18,12 +20,14 @@ pub enum Token {
     Float(f32),
     StrLit(String),
     // Keywords
-    If,
-    Then,
     EndIf,
-    While,
     EndWhile,
+    If,
+    Input,
     Print,
+    Repeat,
+    Then,
+    While,
     // Errors
     Invalid(String),
 }
@@ -139,6 +143,8 @@ fn parse_keyword(first: char, input: &mut Peekable<Chars>) -> Option<Token> {
         "WHILE" => Some(Token::While),
         "ENDWHILE" => Some(Token::EndWhile),
         "PRINT" => Some(Token::Print),
+        "INPUT" => Some(Token::Input),
+        "REPEAT" => Some(Token::Repeat),
         // Default case is we don't match a keyword. In that case we must have an identifier
         // that happens to be all caps
         _ => Some(Token::Ident(keyword)),
@@ -166,11 +172,13 @@ pub fn lex_source(input: &str) -> Result<Vec<Token>, &str> {
             '-' => tokens.push(Token::Sub),
             '*' => tokens.push(Token::Mul),
             '/' => tokens.push(Token::Div),
+            '>' => tokens.push(Token::Gt),
             '\n' => {
                 tokens.push(Token::NewLine);
                 _line_num += 1;
             }
             ' ' => continue,
+            '\t' => continue,
             '=' => match chars.peek() {
                 Some('=') => {
                     tokens.push(Token::Equals);
