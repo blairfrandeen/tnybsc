@@ -3,23 +3,67 @@ use std::str::Chars;
 
 #[derive(Debug, PartialEq)]
 pub enum Token {
+    // Operators
     Add,
     Sub,
     Div,
     Mul,
     Assign,
     Equals,
+    NewLine,
+    // Identifiers
     Ident(String),
+    // Data Types
     Int(i32),
     Float(f32),
+    StrLit(String),
+    // Keywords
     If,
+    Then,
     EndIf,
     While,
     EndWhile,
     Print,
+    // Errors
     Invalid(String),
 }
 
+fn parse_strlit(input: &mut Peekable<Chars>) -> Result<Token, &'static str> {
+    let mut strlit = String::new();
+    while let Some(chr) = input.next() {
+        if chr == '\\' {
+            match input.peek() {
+                Some('"') => strlit.push(input.next().unwrap()),
+                Some('\\') => strlit.push(input.next().unwrap()),
+                _ => strlit.push(chr),
+            }
+        } else if chr == '"' {
+            return Ok(Token::StrLit(strlit));
+        } else {
+            strlit.push(chr);
+        }
+    }
+    Err("unterminated string literal!")
+}
+
+#[test]
+fn test_parse_strlit() {
+    let mut input = "I am quite hungry\"".chars().peekable();
+    assert_eq!(
+        parse_strlit(&mut input),
+        Ok(Token::StrLit("I am quite hungry".to_string()))
+    );
+    let mut input = "He said, \\\"Feed Me!\\\" hungrily\"".chars().peekable();
+    assert_eq!(
+        parse_strlit(&mut input),
+        Ok(Token::StrLit("He said, \"Feed Me!\" hungrily".to_string()))
+    );
+    let mut input = "BACON!".chars().peekable();
+    assert_eq!(
+        parse_strlit(&mut input),
+        Err("unterminated string literal!")
+    );
+}
 fn parse_ident(first: char, input: &mut Peekable<Chars>) -> Option<Token> {
     if first.is_alphabetic() {
         let mut matched = String::new();
@@ -90,6 +134,7 @@ fn parse_keyword(first: char, input: &mut Peekable<Chars>) -> Option<Token> {
 
     match keyword.as_str() {
         "IF" => Some(Token::If),
+        "THEN" => Some(Token::Then),
         "ENDIF" => Some(Token::EndIf),
         "WHILE" => Some(Token::While),
         "ENDWHILE" => Some(Token::EndWhile),
@@ -110,16 +155,22 @@ fn test_parse_keyword() {
     );
 }
 
-pub fn parse_tokens(input: &str) -> Result<Vec<Token>, &str> {
+pub fn lex_source(input: &str) -> Result<Vec<Token>, &str> {
     let mut tokens: Vec<Token> = vec![];
     let mut chars = input.chars().peekable();
+    let mut line_num: u32 = 1;
 
     while let Some(next) = chars.next() {
         match next {
             '+' => tokens.push(Token::Add),
-            '-' => tokens.push(Token::Sub), // TODO: add case for negative number
+            '-' => tokens.push(Token::Sub),
             '*' => tokens.push(Token::Mul),
             '/' => tokens.push(Token::Div),
+            '\n' => {
+                tokens.push(Token::NewLine);
+                line_num += 1;
+            }
+            ' ' => continue,
             '=' => match chars.peek() {
                 Some('=') => {
                     tokens.push(Token::Equals);
@@ -127,6 +178,7 @@ pub fn parse_tokens(input: &str) -> Result<Vec<Token>, &str> {
                 }
                 _ => tokens.push(Token::Assign),
             },
+            '"' => tokens.push(parse_strlit(&mut chars)?),
             _ => {
                 if let Some(token) = parse_keyword(next, &mut chars) {
                     tokens.push(token);
@@ -135,7 +187,7 @@ pub fn parse_tokens(input: &str) -> Result<Vec<Token>, &str> {
                 } else if let Some(token) = parse_num(next, &mut chars) {
                     tokens.push(token);
                 } else {
-                    continue;
+                    tokens.push(Token::Invalid(next.to_string()));
                 }
             }
         }
@@ -147,7 +199,7 @@ pub fn parse_tokens(input: &str) -> Result<Vec<Token>, &str> {
 #[test]
 fn test_parse_tokens() {
     assert_eq!(
-        parse_tokens("+-=+=="),
+        lex_source("+-=+=="),
         Ok(vec![
             Token::Add,
             Token::Sub,
@@ -158,7 +210,7 @@ fn test_parse_tokens() {
     );
 
     assert_eq!(
-        parse_tokens("IF something == BANANA ENDIF grape"),
+        lex_source("IF something == BANANA ENDIF grape"),
         Ok(vec![
             Token::If,
             Token::Ident("something".to_string()),
@@ -170,7 +222,7 @@ fn test_parse_tokens() {
     );
 
     assert_eq!(
-        parse_tokens("WHILE something == 0 11.11 ENDWHILE"),
+        lex_source("WHILE something == 0 11.11 ENDWHILE"),
         Ok(vec![
             Token::While,
             Token::Ident("something".to_string()),
@@ -178,6 +230,22 @@ fn test_parse_tokens() {
             Token::Int(0),
             Token::Float(11.11),
             Token::EndWhile,
+        ])
+    );
+
+    assert_eq!(
+        // matches https://austinhenley.com/blog/teenytinycompiler1.html
+        lex_source("IF+-123 foo*THEN/\n"),
+        Ok(vec![
+            Token::If,
+            Token::Add,
+            Token::Sub,
+            Token::Int(123),
+            Token::Ident("foo".to_string()),
+            Token::Mul,
+            Token::Then,
+            Token::Div,
+            Token::NewLine,
         ])
     );
 }

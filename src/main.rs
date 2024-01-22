@@ -6,7 +6,7 @@ fn main() {
     let mut args = env::args();
     args.next();
     if let Some(source) = args.next() {
-        let tok = lexer::parse_tokens(&source);
+        let tok = lexer::lex_source(&source);
         dbg!(tok);
     }
 }
