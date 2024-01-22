@@ -1,7 +1,7 @@
 use std::iter::Peekable;
 use std::str::Chars;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Token {
     // Operators
     Add,
@@ -24,6 +24,7 @@ pub enum Token {
     EndWhile,
     If,
     Input,
+    Let,
     Print,
     Repeat,
     Then,
@@ -145,6 +146,7 @@ fn parse_keyword(first: char, input: &mut Peekable<Chars>) -> Option<Token> {
         "PRINT" => Some(Token::Print),
         "INPUT" => Some(Token::Input),
         "REPEAT" => Some(Token::Repeat),
+        "LET" => Some(Token::Let),
         // Default case is we don't match a keyword. In that case we must have an identifier
         // that happens to be all caps
         _ => Some(Token::Ident(keyword)),
