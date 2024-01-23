@@ -104,6 +104,25 @@ struct Comparison {
     right: Expression,
 }
 
+impl Build for Comparison {
+    fn build<'a>(
+        tokens: &mut Peekable<impl Iterator<Item = &'a Token>>,
+    ) -> Result<Comparison, &'static str> {
+        let left = Expression::build(tokens)?;
+        let operator = match tokens.next().ok_or("Expected operator") {
+            Ok(Token::Equals) => Token::Equals,
+            Ok(Token::Gt) => Token::Gt,
+            _ => return Err("Expected operator!"),
+        };
+        let right = Expression::build(tokens)?;
+        Ok(Comparison {
+            left,
+            operator,
+            right,
+        })
+    }
+}
+
 #[derive(Debug)]
 struct Expression {
     first_term: Term,
