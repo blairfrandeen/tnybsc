@@ -6,9 +6,9 @@ use std::iter::Peekable;
 #[derive(Debug)]
 pub struct Program {
     statements: Vec<Statement>,
-    symbols: HashSet<String>,
-    labels_declared: HashSet<String>,
-    labels_gotoed: HashSet<String>,
+    symbols: HashSet<Token>,
+    labels_declared: HashSet<Token>,
+    labels_gotoed: HashSet<Token>,
 }
 
 impl Program {
@@ -68,7 +68,7 @@ fn test_prgm() {
 #[derive(Debug)]
 enum Statement {
     Let {
-        ident: Token,
+        ident: String,
         expression: Expression,
     },
     Print(PrintMessage),
@@ -81,13 +81,13 @@ enum Statement {
         statements: Vec<Statement>,
     },
     Label {
-        ident: Token,
+        ident: String,
     },
     Goto {
-        ident: Token,
+        ident: String,
     },
     Input {
-        ident: Token,
+        ident: String,
     },
 }
 
@@ -104,14 +104,18 @@ impl Statement {
         statement_type: Token,
     ) -> Result<Statement, &'static str> {
         let ident = match tokens.next().ok_or("Expected identifier, got EOF") {
-            Ok(Token::Ident(name)) => Token::Ident(name.clone()),
+            Ok(Token::Ident(name)) => name.clone(),
             _ => return Err("Expected identifier"),
         };
         if tokens.next() != Some(&Token::NewLine) {
             return Err("Expected newline after 'LET' statement");
         }
+        dbg!(&ident);
         match statement_type {
-            Token::Goto => Ok(Statement::Goto { ident }),
+            Token::Goto => {
+                // program.labels_declared.insert("hi".to_string());
+                Ok(Statement::Goto { ident })
+            }
             Token::Label => Ok(Statement::Label { ident }),
             Token::Input => Ok(Statement::Input { ident }),
             _ => Err("Invalid statement type!"),
@@ -123,7 +127,7 @@ impl Statement {
         tokens: &mut Peekable<impl Iterator<Item = &'a Token>>,
     ) -> Result<Statement, &'static str> {
         let ident = match tokens.next().ok_or("Expected identifier, got EOF") {
-            Ok(Token::Ident(name)) => Token::Ident(name.clone()),
+            Ok(Token::Ident(name)) => name.clone(),
             _ => return Err("Expected identifier"),
         };
 
