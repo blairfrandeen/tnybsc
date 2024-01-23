@@ -9,20 +9,31 @@ pub struct Program {
 
 impl Program {
     pub fn build(tokens: Vec<Token>) -> Result<Program, &'static str> {
-        let mut statements: Vec<Statement> = Vec::new();
         let mut tokens = tokens.iter().peekable();
+        let statements = Program::get_statements(&mut tokens, None)?;
+        Ok(Program { statements })
+    }
+
+    fn get_statements<'a>(
+        tokens: &mut Peekable<impl Iterator<Item = &'a Token>>,
+        sentinel: Option<Token>,
+    ) -> Result<Vec<Statement>, &'static str> {
+        let mut statements: Vec<Statement> = Vec::new();
         while let Some(token) = tokens.next() {
+            if sentinel.clone().is_some_and(|s| s == *token) {
+                break;
+            }
             match token {
                 Token::Let => {
-                    statements.push(Statement::let_statement(&mut tokens)?);
+                    statements.push(Statement::let_statement(tokens)?);
                 }
                 Token::Print => {
-                    statements.push(Statement::print_statement(&mut tokens)?);
+                    statements.push(Statement::print_statement(tokens)?);
                 }
                 _ => todo!("not implemented"),
             }
         }
-        Ok(Program { statements })
+        Ok(statements)
     }
 }
 
