@@ -23,12 +23,13 @@ impl Program {
 
     pub fn build(&mut self, tokens: Vec<Token>) -> Result<(), &'static str> {
         let mut tokens = tokens.iter().peekable();
-        let statements = Program::get_statements(&mut tokens, None)?;
+        let statements = Program::get_statements(self, &mut tokens, None)?;
         self.statements = statements;
         Ok(())
     }
 
     fn get_statements<'a>(
+        &mut self,
         tokens: &mut Peekable<impl Iterator<Item = &'a Token>>,
         sentinel: Option<Token>,
     ) -> Result<Vec<Statement>, &'static str> {
@@ -38,13 +39,19 @@ impl Program {
                 break;
             }
             match token {
-                Token::Let => statements.push(Statement::let_statement(tokens)?),
-                Token::Print => statements.push(Statement::print_statement(tokens)?),
-                Token::If => statements.push(Statement::if_statement(tokens)?),
-                Token::While => statements.push(Statement::while_statement(tokens)?),
-                Token::Input => statements.push(Statement::ident_statement(tokens, Token::Input)?),
-                Token::Goto => statements.push(Statement::ident_statement(tokens, Token::Goto)?),
-                Token::Label => statements.push(Statement::ident_statement(tokens, Token::Label)?),
+                Token::Let => statements.push(Statement::let_statement(self, tokens)?),
+                Token::Print => statements.push(Statement::print_statement(self, tokens)?),
+                Token::If => statements.push(Statement::if_statement(self, tokens)?),
+                Token::While => statements.push(Statement::while_statement(self, tokens)?),
+                Token::Input => {
+                    statements.push(Statement::ident_statement(self, tokens, Token::Input)?)
+                }
+                Token::Goto => {
+                    statements.push(Statement::ident_statement(self, tokens, Token::Goto)?)
+                }
+                Token::Label => {
+                    statements.push(Statement::ident_statement(self, tokens, Token::Label)?)
+                }
                 Token::NewLine => continue,
                 _ => todo!("statement not implemented"),
             }
@@ -92,6 +99,7 @@ enum PrintMessage {
 
 impl Statement {
     fn ident_statement<'a>(
+        program: &mut Program,
         tokens: &mut Peekable<impl Iterator<Item = &'a Token>>,
         statement_type: Token,
     ) -> Result<Statement, &'static str> {
@@ -111,6 +119,7 @@ impl Statement {
     }
 
     fn let_statement<'a>(
+        program: &mut Program,
         tokens: &mut Peekable<impl Iterator<Item = &'a Token>>,
     ) -> Result<Statement, &'static str> {
         let ident = match tokens.next().ok_or("Expected identifier, got EOF") {
@@ -132,6 +141,7 @@ impl Statement {
     }
 
     fn print_statement<'a>(
+        program: &mut Program,
         tokens: &mut Peekable<impl Iterator<Item = &'a Token>>,
     ) -> Result<Statement, &'static str> {
         let message = match tokens.peek().ok_or("Expected string literal or expression") {
@@ -154,6 +164,7 @@ impl Statement {
     }
 
     fn if_statement<'a>(
+        program: &mut Program,
         tokens: &mut Peekable<impl Iterator<Item = &'a Token>>,
     ) -> Result<Statement, &'static str> {
         let comparison = Comparison::build(tokens)?;
@@ -163,7 +174,7 @@ impl Statement {
         if tokens.next() != Some(&Token::NewLine) {
             return Err("Expected newline after 'THEN'");
         }
-        let statements = Program::get_statements(tokens, Some(Token::EndIf))?;
+        let statements = program.get_statements(tokens, Some(Token::EndIf))?;
         if tokens.next() != Some(&Token::NewLine) {
             return Err("Expected newline after 'ENDIF'");
         }
@@ -173,6 +184,7 @@ impl Statement {
         })
     }
     fn while_statement<'a>(
+        program: &mut Program,
         tokens: &mut Peekable<impl Iterator<Item = &'a Token>>,
     ) -> Result<Statement, &'static str> {
         let comparison = Comparison::build(tokens)?;
@@ -182,7 +194,7 @@ impl Statement {
         if tokens.next() != Some(&Token::NewLine) {
             return Err("Expected newline after 'REPEAT'");
         }
-        let statements = Program::get_statements(tokens, Some(Token::EndWhile))?;
+        let statements = program.get_statements(tokens, Some(Token::EndWhile))?;
         if tokens.next() != Some(&Token::NewLine) {
             return Err("Expected newline after 'ENDWHILE'");
         }
