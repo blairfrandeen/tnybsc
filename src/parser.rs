@@ -23,7 +23,7 @@ impl Program {
 
     pub fn build(&mut self, tokens: Vec<Token>) -> Result<(), &'static str> {
         let mut tokens = tokens.iter().peekable();
-        let statements = Program::get_statements(self, &mut tokens, None)?;
+        self.statements = Program::get_statements(self, &mut tokens, None)?;
         Ok(())
     }
 
@@ -143,7 +143,7 @@ impl Statement {
             _ => return Err("Expected '='"),
         }
 
-        let expression = Expression::build(tokens)?;
+        let expression = Expression::build(program, tokens)?;
         if tokens.next() != Some(&Token::NewLine) {
             return Err("Expected newline after 'LET' statement");
         }
@@ -158,7 +158,7 @@ impl Statement {
     ) -> Result<Statement, &'static str> {
         let message = match tokens.peek().ok_or("Expected string literal or expression") {
             Ok(Token::StrLit(msg)) => PrintMessage::StrLit(msg.clone()),
-            _ => PrintMessage::Expression(Expression::build(tokens)?),
+            _ => PrintMessage::Expression(Expression::build(program, tokens)?),
         };
 
         // TODO: cleaner implementation here. The Expression::build function
@@ -179,7 +179,7 @@ impl Statement {
         program: &mut Program,
         tokens: &mut Peekable<impl Iterator<Item = &'a Token>>,
     ) -> Result<Statement, &'static str> {
-        let comparison = Comparison::build(tokens)?;
+        let comparison = Comparison::build(program, tokens)?;
         if tokens.next() != Some(&Token::Then) {
             return Err("Expected 'THEN' after 'IF' comparison");
         }
@@ -199,7 +199,7 @@ impl Statement {
         program: &mut Program,
         tokens: &mut Peekable<impl Iterator<Item = &'a Token>>,
     ) -> Result<Statement, &'static str> {
-        let comparison = Comparison::build(tokens)?;
+        let comparison = Comparison::build(program, tokens)?;
         if tokens.next() != Some(&Token::Repeat) {
             return Err("Expected 'REPEAT' after 'WHILE' comparison");
         }
@@ -219,6 +219,7 @@ impl Statement {
 
 trait Build {
     fn build<'a>(
+        program: &Program,
         tokens: &mut Peekable<impl Iterator<Item = &'a Token>>,
     ) -> Result<Self, &'static str>
     where
@@ -234,15 +235,16 @@ struct Comparison {
 
 impl Build for Comparison {
     fn build<'a>(
+        program: &Program,
         tokens: &mut Peekable<impl Iterator<Item = &'a Token>>,
     ) -> Result<Comparison, &'static str> {
-        let left = Expression::build(tokens)?;
+        let left = Expression::build(program, tokens)?;
         let operator = match tokens.next().ok_or("Expected operator") {
             Ok(Token::Equals) => Token::Equals,
             Ok(Token::Gt) => Token::Gt,
             _ => return Err("Expected operator!"),
         };
-        let right = Expression::build(tokens)?;
+        let right = Expression::build(program, tokens)?;
         Ok(Comparison {
             left,
             operator,
@@ -259,11 +261,12 @@ struct Expression {
 
 impl Build for Expression {
     fn build<'a>(
+        program: &Program,
         tokens: &mut Peekable<impl Iterator<Item = &'a Token>>,
     ) -> Result<Expression, &'static str> {
-        let first_term = Term::build(tokens)?;
+        let first_term = Term::build(program, tokens)?;
         let mut other_terms: Vec<Term> = Vec::new();
-        while let Ok(term) = Term::build(tokens) {
+        while let Ok(term) = Term::build(program, tokens) {
             other_terms.push(term);
         }
         Ok(Expression {
@@ -280,11 +283,12 @@ struct Term {
 }
 impl Build for Term {
     fn build<'a>(
+        program: &Program,
         tokens: &mut Peekable<impl Iterator<Item = &'a Token>>,
     ) -> Result<Term, &'static str> {
-        let unary = Unary::build(tokens)?;
+        let unary = Unary::build(program, tokens)?;
         let mut components: Vec<TermComp> = Vec::new();
-        while let Some(component) = TermComp::build(tokens) {
+        while let Some(component) = TermComp::build(program, tokens) {
             components.push(component);
         }
         Ok(Term { unary, components })
@@ -297,12 +301,15 @@ struct TermComp {
     unary: Unary,
 }
 impl TermComp {
-    fn build<'a>(tokens: &mut Peekable<impl Iterator<Item = &'a Token>>) -> Option<TermComp> {
+    fn build<'a>(
+        program: &Program,
+        tokens: &mut Peekable<impl Iterator<Item = &'a Token>>,
+    ) -> Option<TermComp> {
         let operator = match tokens.next_if(|&tok| (*tok == Token::Mul) | (*tok == Token::Div)) {
             Some(op) => op,
             None => return None,
         };
-        let unary = match Unary::build(tokens) {
+        let unary = match Unary::build(program, tokens) {
             Ok(un) => un,
             _ => return None,
         };
@@ -321,13 +328,17 @@ struct Unary {
 }
 impl Build for Unary {
     fn build<'a>(
+        program: &Program,
         tokens: &mut Peekable<impl Iterator<Item = &'a Token>>,
     ) -> Result<Unary, &'static str> {
         let operator = tokens.next_if(|&tok| (*tok == Token::Add) | (*tok == Token::Sub));
         let primary = match tokens.peek().ok_or("Expected Primary Token") {
             Ok(Token::Float(val)) => Primary::Float(*val),
             Ok(Token::Int(val)) => Primary::Int(*val),
-            Ok(Token::Ident(name)) => Primary::Ident(name.clone()),
+            Ok(Token::Ident(name)) => match program.symbols.contains(name) {
+                true => Primary::Ident(name.clone()),
+                false => return Err("Undeclared identifier!"),
+            },
             _ => return Err("expected primary token"),
         };
         tokens.next();
