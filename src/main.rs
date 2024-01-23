@@ -28,8 +28,12 @@ fn main() {
                 let tok = lexer::lex_source(&file);
                 dbg!(&tok);
                 let mut prgm = parser::Program::new();
-                prgm.build(tok.unwrap());
-                dbg!(prgm);
+                match prgm.build(tok.unwrap()) {
+                    Ok(()) => {
+                        dbg!(prgm);
+                    }
+                    Err(err) => panic!("{:?}", err),
+                }
             }
             Err(err) => panic!("could not open file: {:?}", err),
         }

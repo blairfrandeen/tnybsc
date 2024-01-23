@@ -6,9 +6,9 @@ use std::iter::Peekable;
 #[derive(Debug)]
 pub struct Program {
     statements: Vec<Statement>,
-    symbols: HashSet<Token>,
-    labels_declared: HashSet<Token>,
-    labels_gotoed: HashSet<Token>,
+    symbols: HashSet<String>,
+    labels_declared: HashSet<String>,
+    labels_gotoed: HashSet<String>,
 }
 
 impl Program {
@@ -24,7 +24,6 @@ impl Program {
     pub fn build(&mut self, tokens: Vec<Token>) -> Result<(), &'static str> {
         let mut tokens = tokens.iter().peekable();
         let statements = Program::get_statements(self, &mut tokens, None)?;
-        self.statements = statements;
         Ok(())
     }
 
@@ -108,16 +107,24 @@ impl Statement {
             _ => return Err("Expected identifier"),
         };
         if tokens.next() != Some(&Token::NewLine) {
-            return Err("Expected newline after 'LET' statement");
+            return Err("Expected newline");
         }
-        dbg!(&ident);
         match statement_type {
-            Token::Goto => {
-                // program.labels_declared.insert("hi".to_string());
-                Ok(Statement::Goto { ident })
+            Token::Goto => match program.labels_declared.contains(&ident) {
+                true => {
+                    program.labels_gotoed.insert(ident.clone());
+                    Ok(Statement::Goto { ident })
+                }
+                false => Err("Attempt to GOTO undeclared label: {ident}"),
+            },
+            Token::Label => {
+                program.labels_declared.insert(ident.clone());
+                Ok(Statement::Label { ident })
             }
-            Token::Label => Ok(Statement::Label { ident }),
-            Token::Input => Ok(Statement::Input { ident }),
+            Token::Input => {
+                program.symbols.insert(ident.clone());
+                Ok(Statement::Input { ident })
+            }
             _ => Err("Invalid statement type!"),
         }
     }
@@ -140,6 +147,7 @@ impl Statement {
         if tokens.next() != Some(&Token::NewLine) {
             return Err("Expected newline after 'LET' statement");
         }
+        program.symbols.insert(ident.clone());
 
         Ok(Statement::Let { ident, expression })
     }
