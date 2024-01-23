@@ -22,8 +22,10 @@ pub enum Token {
     // Keywords
     EndIf,
     EndWhile,
+    Goto,
     If,
     Input,
+    Label,
     Let,
     Print,
     Repeat,
@@ -138,15 +140,17 @@ fn parse_keyword(first: char, input: &mut Peekable<Chars>) -> Option<Token> {
     }
 
     match keyword.as_str() {
-        "IF" => Some(Token::If),
-        "THEN" => Some(Token::Then),
         "ENDIF" => Some(Token::EndIf),
-        "WHILE" => Some(Token::While),
         "ENDWHILE" => Some(Token::EndWhile),
-        "PRINT" => Some(Token::Print),
+        "GOTO" => Some(Token::Goto),
+        "IF" => Some(Token::If),
         "INPUT" => Some(Token::Input),
-        "REPEAT" => Some(Token::Repeat),
+        "LABEL" => Some(Token::Label),
         "LET" => Some(Token::Let),
+        "PRINT" => Some(Token::Print),
+        "REPEAT" => Some(Token::Repeat),
+        "THEN" => Some(Token::Then),
+        "WHILE" => Some(Token::While),
         // Default case is we don't match a keyword. In that case we must have an identifier
         // that happens to be all caps
         _ => Some(Token::Ident(keyword)),
