@@ -1,17 +1,31 @@
 #![allow(dead_code, unused_variables)]
 use crate::lexer::Token;
+use std::collections::HashSet;
 use std::iter::Peekable;
 
 #[derive(Debug)]
 pub struct Program {
     statements: Vec<Statement>,
+    symbols: HashSet<String>,
+    labels_declared: HashSet<String>,
+    labels_gotoed: HashSet<String>,
 }
 
 impl Program {
-    pub fn build(tokens: Vec<Token>) -> Result<Program, &'static str> {
+    pub fn new() -> Program {
+        Program {
+            statements: Vec::new(),
+            symbols: HashSet::new(),
+            labels_declared: HashSet::new(),
+            labels_gotoed: HashSet::new(),
+        }
+    }
+
+    pub fn build(&mut self, tokens: Vec<Token>) -> Result<(), &'static str> {
         let mut tokens = tokens.iter().peekable();
         let statements = Program::get_statements(&mut tokens, None)?;
-        Ok(Program { statements })
+        self.statements = statements;
+        Ok(())
     }
 
     fn get_statements<'a>(

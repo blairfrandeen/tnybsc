@@ -19,14 +19,16 @@ fn main() {
     if let Some(code) = args.code {
         let tok = lexer::lex_source(&code);
         dbg!(&tok);
-        let prgm = parser::Program::build(tok.unwrap());
+        let mut prgm = parser::Program::new();
+        prgm.build(tok.unwrap());
         dbg!(prgm);
     } else if let Some(source_path) = args.source {
         match std::fs::read_to_string(source_path) {
             Ok(file) => {
                 let tok = lexer::lex_source(&file);
                 dbg!(&tok);
-                let prgm = parser::Program::build(tok.unwrap());
+                let mut prgm = parser::Program::new();
+                prgm.build(tok.unwrap());
                 dbg!(prgm);
             }
             Err(err) => panic!("could not open file: {:?}", err),
