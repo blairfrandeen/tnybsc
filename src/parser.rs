@@ -30,7 +30,11 @@ impl Program {
                 Token::Print => {
                     statements.push(Statement::print_statement(tokens)?);
                 }
-                _ => todo!("not implemented"),
+                Token::If => {
+                    statements.push(Statement::if_statement(tokens)?);
+                }
+                Token::NewLine => continue,
+                _ => todo!("statement not implemented"),
             }
         }
         Ok(statements)
@@ -49,6 +53,10 @@ enum Statement {
         expression: Expression,
     },
     Print(PrintMessage),
+    If {
+        comparison: Comparison,
+        statements: Vec<Statement>,
+    },
     // TODO
 }
 
@@ -94,6 +102,23 @@ impl Statement {
         };
         tokens.next();
         Ok(Statement::Print(message))
+    }
+
+    fn if_statement<'a>(
+        tokens: &mut Peekable<impl Iterator<Item = &'a Token>>,
+    ) -> Result<Statement, &'static str> {
+        let comparison = Comparison::build(tokens)?;
+        if tokens.next() != Some(&Token::Then) {
+            return Err("Expected 'THEN' after 'IF' comparison");
+        }
+        if tokens.next() != Some(&Token::NewLine) {
+            return Err("Expected newline after 'THEN'");
+        }
+        let statements = Program::get_statements(tokens, Some(Token::EndIf))?;
+        Ok(Statement::If {
+            comparison,
+            statements,
+        })
     }
 }
 
@@ -196,12 +221,13 @@ impl Build for Unary {
         tokens: &mut Peekable<impl Iterator<Item = &'a Token>>,
     ) -> Result<Unary, &'static str> {
         let operator = tokens.next_if(|&tok| (*tok == Token::Add) | (*tok == Token::Sub));
-        let primary = match tokens.next().ok_or("Expected Primary Token") {
+        let primary = match tokens.peek().ok_or("Expected Primary Token") {
             Ok(Token::Float(val)) => Primary::Float(*val),
             Ok(Token::Int(val)) => Primary::Int(*val),
             Ok(Token::Ident(name)) => Primary::Ident(name.clone()),
             _ => return Err("expected primary token"),
         };
+        tokens.next();
         Ok(Unary {
             operator: operator.cloned(),
             primary,
