@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use clap::Parser;
+pub mod emitter;
 pub mod lexer;
 pub mod parser;
 
@@ -30,10 +31,13 @@ fn main() {
                 let mut prgm = parser::Program::new();
                 match prgm.build(tok.unwrap()) {
                     Ok(()) => {
-                        dbg!(prgm);
+                        dbg!(&prgm);
                     }
                     Err(err) => panic!("{:?}", err),
                 }
+                let mut emitter = emitter::Emitter::new();
+                emitter.build(prgm);
+                print!("{}", emitter);
             }
             Err(err) => panic!("could not open file: {:?}", err),
         }

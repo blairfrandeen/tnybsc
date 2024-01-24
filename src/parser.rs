@@ -5,7 +5,7 @@ use std::iter::Peekable;
 
 #[derive(Debug)]
 pub struct Program {
-    statements: Vec<Statement>,
+    pub statements: Vec<Statement>,
     symbols: HashSet<String>,
     labels_declared: HashSet<String>,
     labels_gotoed: HashSet<String>,
@@ -59,13 +59,8 @@ impl Program {
     }
 }
 
-#[test]
-fn test_prgm() {
-    let prog = "LET a = 1\n";
-}
-
 #[derive(Debug)]
-enum Statement {
+pub enum Statement {
     Let {
         ident: String,
         expression: Expression,
@@ -91,7 +86,7 @@ enum Statement {
 }
 
 #[derive(Debug, PartialEq)]
-enum PrintMessage {
+pub enum PrintMessage {
     Expression(Expression),
     StrLit(String),
 }
@@ -227,10 +222,10 @@ trait Build {
 }
 
 #[derive(Debug)]
-struct Comparison {
-    left: Expression,
-    operator: Token,
-    right: Expression,
+pub struct Comparison {
+    pub left: Expression,
+    pub operator: Token,
+    pub right: Expression,
 }
 
 impl Build for Comparison {
@@ -254,9 +249,9 @@ impl Build for Comparison {
 }
 
 #[derive(Debug, PartialEq)]
-struct Expression {
-    first_term: Term,
-    other_terms: Vec<Term>,
+pub struct Expression {
+    pub first_term: Term,
+    pub other_terms: Vec<Term>,
 }
 
 impl Build for Expression {
@@ -277,9 +272,9 @@ impl Build for Expression {
 }
 
 #[derive(Debug, PartialEq)]
-struct Term {
-    unary: Unary,
-    components: Vec<TermComp>,
+pub struct Term {
+    pub unary: Unary,
+    pub components: Vec<TermComp>,
 }
 impl Build for Term {
     fn build<'a>(
@@ -296,9 +291,9 @@ impl Build for Term {
 }
 
 #[derive(Debug, PartialEq)]
-struct TermComp {
-    operator: Token,
-    unary: Unary,
+pub struct TermComp {
+    pub operator: Token,
+    pub unary: Unary,
 }
 impl TermComp {
     fn build<'a>(
@@ -322,10 +317,11 @@ impl TermComp {
 }
 
 #[derive(Debug, PartialEq)]
-struct Unary {
-    operator: Option<Token>,
-    primary: Primary,
+pub struct Unary {
+    pub operator: Option<Token>,
+    pub primary: Primary,
 }
+
 impl Build for Unary {
     fn build<'a>(
         program: &Program,
@@ -350,7 +346,7 @@ impl Build for Unary {
 }
 
 #[derive(Debug, PartialEq)]
-enum Primary {
+pub enum Primary {
     Float(f32),
     Int(i32),
     Ident(String),
