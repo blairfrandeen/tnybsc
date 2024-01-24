@@ -1,9 +1,10 @@
 use std::path::PathBuf;
 
 use clap::Parser;
-pub mod emitter;
-pub mod lexer;
-pub mod parser;
+
+use crate::compiler::{emitter, lexer, parser};
+
+pub mod compiler;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
