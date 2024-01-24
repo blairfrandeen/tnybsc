@@ -115,6 +115,9 @@ fn main() {
             for line in String::from_utf8(out.stdout).unwrap().lines() {
                 println!("{}", line);
             }
+            for line in String::from_utf8(out.stderr).unwrap().lines() {
+                println!("{}", line);
+            }
         }
         Err(err) => panic!("Error during compilation: {}", err),
     };
@@ -126,6 +129,6 @@ fn main() {
                 println!("{}", line);
             }
         }
-        Err(err) => panic!("Error during compilation: {}", err),
+        Err(err) => panic!("Error during code execution: {}", err),
     };
 }
