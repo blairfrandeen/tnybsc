@@ -1,6 +1,8 @@
+use std::fs;
+use std::io::Write;
 use std::path::PathBuf;
 
-use clap::Parser;
+use clap::{CommandFactory, Parser};
 
 use crate::compiler::{emitter, lexer, parser};
 
@@ -11,7 +13,7 @@ pub mod compiler;
 #[clap(author, version, about, long_about = None)]
 struct Args {
     /// Execute code from the specified path
-    #[clap(short, long)]
+    #[clap(value_parser)]
     source_path: Option<PathBuf>,
 
     /// Execute code directly from the command line
@@ -44,7 +46,8 @@ fn main() {
             Err(err) => panic!("could not open file: {:?}", err),
         }
     } else {
-        panic!("must supply source code or file!")
+        Args::command().print_help();
+        std::process::exit(1);
     };
 
     let tokens = lexer::lex_source(&source_code);
@@ -71,7 +74,14 @@ fn main() {
     emitter.build(prgm);
     if let Some(compile_opt) = args.compile {
         if let Some(compile_path) = compile_opt {
-            todo!()
+            let mut compiled_file = match fs::File::create(&compile_path) {
+                Ok(path) => path,
+                Err(err) => panic!("unable to create {:?}: {err:?}", &compile_path),
+            };
+            match compiled_file.write_all(format!("{emitter}").as_bytes()) {
+                Ok(_) => {}
+                Err(err) => panic!("unable to write to {:?}: {err:?}", &compile_path),
+            };
         } else {
             print!("{}", emitter);
         }
