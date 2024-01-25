@@ -6,7 +6,7 @@ use std::iter::Peekable;
 #[derive(Debug)]
 pub struct Program {
     pub statements: Vec<Statement>,
-    symbols: HashSet<String>,
+    pub symbols: HashSet<String>,
     labels_declared: HashSet<String>,
     labels_gotoed: HashSet<String>,
 }
@@ -190,6 +190,7 @@ impl Statement {
             statements,
         })
     }
+
     fn while_statement<'a>(
         program: &mut Program,
         tokens: &mut Peekable<impl Iterator<Item = &'a Token>>,
