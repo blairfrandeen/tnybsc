@@ -237,8 +237,11 @@ impl Build for Comparison {
         let left = Expression::build(program, tokens)?;
         let operator = match tokens.next().ok_or("Expected operator") {
             Ok(Token::Equals) => Token::Equals,
+            Ok(Token::NotEquals) => Token::NotEquals,
             Ok(Token::Gt) => Token::Gt,
+            Ok(Token::Gte) => Token::Gte,
             Ok(Token::Lt) => Token::Lt,
+            Ok(Token::Lte) => Token::Lte,
             _ => return Err("Expected operator!"),
         };
         let right = Expression::build(program, tokens)?;

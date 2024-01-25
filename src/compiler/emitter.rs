@@ -87,8 +87,11 @@ impl Comparison {
     fn emit(&self) -> String {
         let op = match self.operator {
             Token::Equals => "==",
+            Token::NotEquals => "!=",
             Token::Gt => ">",
+            Token::Gte => ">=",
             Token::Lt => "<",
+            Token::Lte => "<=",
             _ => panic!("Unexpected operator!"),
         };
         format!("{}{}{}", self.left.emit(), op, self.right.emit())

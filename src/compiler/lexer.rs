@@ -12,7 +12,10 @@ pub enum Token {
     Equals,
     NewLine,
     Gt,
+    Gte,
     Lt,
+    Lte,
+    NotEquals,
     // TODO: Remaining Comparison operators
     // Identifiers
     Ident(String),
@@ -179,8 +182,20 @@ pub fn lex_source(input: &str) -> Result<Vec<Token>, &str> {
             '-' => tokens.push(Token::Sub),
             '*' => tokens.push(Token::Mul),
             '/' => tokens.push(Token::Div),
-            '>' => tokens.push(Token::Gt),
-            '<' => tokens.push(Token::Lt),
+            '>' => match chars.peek() {
+                Some('=') => {
+                    tokens.push(Token::Gte);
+                    chars.next();
+                }
+                _ => tokens.push(Token::Gt),
+            },
+            '<' => match chars.peek() {
+                Some('=') => {
+                    tokens.push(Token::Lte);
+                    chars.next();
+                }
+                _ => tokens.push(Token::Lt),
+            },
             '\n' => {
                 tokens.push(Token::NewLine);
                 _line_num += 1;
@@ -193,6 +208,12 @@ pub fn lex_source(input: &str) -> Result<Vec<Token>, &str> {
                     chars.next();
                 }
                 _ => tokens.push(Token::Assign),
+            },
+            '!' => match chars.next() {
+                Some('=') => {
+                    tokens.push(Token::NotEquals);
+                }
+                _ => tokens.push(Token::Invalid(format!("!{:?}", chars.next()))),
             },
             '"' => tokens.push(parse_strlit(&mut chars)?),
             _ => {
