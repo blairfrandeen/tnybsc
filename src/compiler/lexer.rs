@@ -12,6 +12,7 @@ pub enum Token {
     Equals,
     NewLine,
     Gt,
+    Lt,
     // TODO: Remaining Comparison operators
     // Identifiers
     Ident(String),
@@ -179,6 +180,7 @@ pub fn lex_source(input: &str) -> Result<Vec<Token>, &str> {
             '*' => tokens.push(Token::Mul),
             '/' => tokens.push(Token::Div),
             '>' => tokens.push(Token::Gt),
+            '<' => tokens.push(Token::Lt),
             '\n' => {
                 tokens.push(Token::NewLine);
                 _line_num += 1;

@@ -88,6 +88,7 @@ impl Comparison {
         let op = match self.operator {
             Token::Equals => "==",
             Token::Gt => ">",
+            Token::Lt => "<",
             _ => panic!("Unexpected operator!"),
         };
         format!("{}{}{}", self.left.emit(), op, self.right.emit())
