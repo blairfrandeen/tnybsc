@@ -1,0 +1,8 @@
+LET a = 5
+LABEL there
+PRINT a
+IF a > 0 THEN
+    LET a = a - 1
+    GOTO there
+ENDIF
+PRINT "DING DING DING DING DING!!!"

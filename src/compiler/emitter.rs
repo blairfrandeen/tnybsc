@@ -72,10 +72,13 @@ impl Statement {
                 statement_str.push_str("}\n");
             }
             Statement::Label { ident } => {
-                todo!()
+                statement_str.push_str(ident);
+                statement_str.push(':');
             }
             Statement::Goto { ident } => {
-                todo!()
+                statement_str.push_str("goto ");
+                statement_str.push_str(ident);
+                statement_str.push_str(";");
             }
         };
         statement_str.push('\n');
